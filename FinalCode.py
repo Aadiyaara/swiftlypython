@@ -2,9 +2,9 @@
         Read Gyro and Accelerometer by Interfacing Raspberry Pi with MPU6050 using Python
 	http://www.electronicwings.com
 '''
-
+import requests
 import smbus			#import SMBus module of I2C
-from time import sleep          #import
+from time import *          #import
 from os import system, name
 
 #some MPU6050 Registers and their Address
@@ -86,6 +86,17 @@ lastZ_4 = 0
 
 decisionsArray = []
 
+def postreq(dat):
+	url = 'https://swiftlybackend.herokuapp.com/graphql'
+	
+	timestamp = int(time.time()*1000.0)
+
+	correct_payload = "{'mutation' : { sendCharacter (character: " + dat + ", timestamp: " + timestamp + ") { id } }}"
+
+	# Output => You need to provide Username & password
+	r = requests.post(url, data=wrong_payload)
+	print(r.text)	
+	
 def clear():
  
     # for windows
@@ -499,6 +510,7 @@ while True:
 			decision = 'D'
 		if(decision != 'N'):
 			print(decision)
+			postreq(decision)
 		decisionsArray = []
 
 	sleep(0.001)
