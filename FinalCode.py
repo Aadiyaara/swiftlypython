@@ -4,7 +4,8 @@
 '''
 import requests
 import smbus			#import SMBus module of I2C
-from time import *          #import
+from time import sleep
+import time          #import
 from os import system, name
 
 #some MPU6050 Registers and their Address
@@ -87,14 +88,14 @@ lastZ_4 = 0
 decisionsArray = []
 
 def postreq(dat):
-	url = 'https://swiftlybackend.herokuapp.com/graphql'
+	url = 'https://swiftlykul1.herokuapp.com/graphql'
 	
 	timestamp = int(time.time()*1000.0)
 
-	correct_payload = "{'mutation' : { sendCharacter (character: " + dat + ", timestamp: " + timestamp + ") { id } }}"
+	correct_payload = {'query': "mutation { sendCharacter (character:\"" + str(dat) +"\", timestamp: \""+ str(timestamp) + "\") { id } }"}
 
 	# Output => You need to provide Username & password
-	r = requests.post(url, data=wrong_payload)
+	r = requests.post(url, json=correct_payload)
 	print(r.text)	
 	
 def clear():
@@ -513,5 +514,5 @@ while True:
 			postreq(decision)
 		decisionsArray = []
 
-	sleep(0.001)
+	sleep(0.01)
 	#clear()
