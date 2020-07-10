@@ -1,0 +1,190 @@
+'''
+        Read Gyro and Accelerometer by Interfacing Raspberry Pi with MPU6050 using Python
+    http://www.electronicwings.com
+'''
+import requests
+import smbus            #import SMBus module of I2C
+from time import sleep
+import time          #import
+from os import system, name
+from matplotlib import pyplot as plt
+from matplotlib.animation import FuncAnimation
+from scipy.fftpack import fft
+import csv
+
+AxA = []
+AyA = []
+AzA = []
+GxA = []
+GyA = []
+GzA = []
+
+X = []
+gestureCount = 0
+
+# fig, (ax1, ax2) = plt.subplots(nrows=2,ncols=1)
+
+plt.style.use('fivethirtyeight')
+
+#some MPU6050 Registers and their Address
+PWR_MGMT_1   = 0x6B
+SMPLRT_DIV   = 0x19
+CONFIG       = 0x1A
+GYRO_CONFIG  = 0x1B
+INT_ENABLE   = 0x38
+ACCEL_XOUT_H = 0x3B
+ACCEL_YOUT_H = 0x3D
+ACCEL_ZOUT_H = 0x3F
+GYRO_XOUT_H  = 0x43
+GYRO_YOUT_H  = 0x45
+GYRO_ZOUT_H  = 0x47
+    
+def clear():
+ 
+    # for windows
+    if name == 'nt':
+        _ = system('cls')
+ 
+    # for mac and linux(here, os.name is 'posix')
+    else:
+        _ = system('clear')
+
+def MPU_Init_Buses():
+    #write to sample rate register
+    bus_1.write_byte_data(Device_Address_1, SMPLRT_DIV, 7)
+    
+    #Write to power management register
+    bus_1.write_byte_data(Device_Address_1, PWR_MGMT_1, 1)
+    
+    #Write to Configuration register
+    bus_1.write_byte_data(Device_Address_1, CONFIG, 0)
+    
+    #Write to Gyro configuration register
+    bus_1.write_byte_data(Device_Address_1, GYRO_CONFIG, 24)
+    
+    #Write to interrupt enable register
+    bus_1.write_byte_data(Device_Address_1, INT_ENABLE, 1)
+
+def read_raw_data(bus, device, addr):
+    #Accelero and Gyro value are 16-bit
+        high = bus.read_byte_data(device, addr)
+        low = bus.read_byte_data(device, addr+1)
+    
+        #concatenate higher and lower value
+        value = ((high << 8) | low)
+        
+        #to get signed value from mpu6050
+        if(value > 32768):
+                value = value - 65536
+        return value
+
+
+bus_1 = smbus.SMBus(1)  # or bus = smbus.SMBus(0) for older version boards
+Device_Address_1 = 0x68   # MPU6050 device address
+Device_Address_2 = 0x69   # MPU6050 device address
+maxInt = -10000
+MPU_Init_Buses()
+
+i = 0
+
+print (" Reading Data of Gyroscope and Accelerometer")
+
+flag = False
+data = []
+
+while True:
+    
+    #Read Accelerometer raw value 1
+    Ax = read_raw_data(bus_1, Device_Address_1, ACCEL_XOUT_H)
+    Ay = read_raw_data(bus_1, Device_Address_1, ACCEL_YOUT_H)
+    Az = read_raw_data(bus_1, Device_Address_1, ACCEL_ZOUT_H)
+
+    #Read Gyroscope raw value
+    Gx = read_raw_data(bus_1, Device_Address_1, GYRO_XOUT_H)
+    Gy = read_raw_data(bus_1, Device_Address_1, GYRO_YOUT_H)
+    Gz = read_raw_data(bus_1, Device_Address_1, GYRO_ZOUT_H)
+    
+    #Read Accelerometer raw value 2
+    # acc_x_B= read_raw_data(bus_1, Device_Address_2, ACCEL_XOUT_H)
+    # acc_y_B = read_raw_data(bus_1, Device_Address_2, ACCEL_YOUT_H)
+    # acc_z_B = read_raw_data(bus_1, Device_Address_2, ACCEL_ZOUT_H)
+
+    # #Read Gyroscope raw value
+    # gyro_x_B = read_raw_data(bus_1, Device_Address_2, GYRO_XOUT_H)
+    # gyro_y_B = read_raw_data(bus_1, Device_Address_2, GYRO_YOUT_H)
+    # gyro_z_B = read_raw_data(bus_1, Device_Address_2, GYRO_ZOUT_H)
+
+    #Full scale range +/- 250 degree/C as per sensitivity scale factor
+    Ax = Ax/16384.0
+    Ay = Ay/16384.0
+    Az = Az/16384.0
+    Gx = Gx/131.0
+    Gy = Gy/131.0
+    Gz = Gz/131.0
+
+    AxA.append(Ax)
+    AyA.append(Ay)
+    AzA.append(Az)
+    GxA.append(Gx)
+    GyA.append(Gy)
+    GzA.append(Gz)
+
+
+    if len(AxA) > 50:
+        AxA.pop(0)
+    if len(AyA) > 50:
+        AyA.pop(0)
+    if len(AzA) > 50:
+        AzA.pop(0)
+    if len(GxA) > 50:
+        GxA.pop(0)
+    if len(GyA) > 50:
+        GyA.pop(0)
+    if len(GzA) > 50:
+        GzA.pop(0)
+
+    if(max(GxA) > 2.5 or min(GxA) < -2.5):
+        if flag == False:
+            i = 1
+            print('Gesture Started')
+            flag = True
+            data.append(['Index', 'Gx', 'Gy', 'Gz'])
+        else:
+            i = i + 1
+            data.append([i, Gx, Gy, Gz])
+
+    else:
+        if flag == True:
+            print('Gesture Ended')
+            print(i)
+            i = 0
+            flag = False
+            gestureCount = gestureCount + 1
+	    #start_time = time.time()
+	    File_object.writelines(L) for L = data
+            file_name = '{gestureCount}.csv'.format(gestureCount = gestureCount)
+            
+with open(file_name, 'w') as f:
+                thewriter = csv.writer(f)
+                thewriter.writerows(data)
+            #total_time_writing = time.time() - start_time
+            #print('Writing of gesture {gestureCount} took {total_time_writing}'.format(gestureCount = gestureCount, total_time_writing = totoal_time_writing))
+            data = []
+
+    #plt.plot(GxA)
+    #plt.plot(GzA)
+    # ax2.plot(Ax_1_B)
+    # ax2.plot(Ax_2_B)
+    # ax2.plot(Ax_3_B)
+    # print(Gy_A)
+    # print ("Gx=%.2f" %Gx, u'\u00b0'+ "/s", "\tGy=%.2f" %Gy, u'\u00b0'+ "/s", "\tGz=%.2f" %Gz, u'\u00b0'+ "/s", "\tAx=%.2f g" %Ax, "\tAy=%.2f g" %Ay, "\tAz=%.2f g" %Az)
+    #clear()
+    #getData()
+# getData()
+
+#while True:
+    # c, addr = s.accept()
+    # print ('Got connection from',addr)
+    #ani = FuncAnimation(plt.gcf(), getData, interval=1)
+    #plt.show()
+    # while True:

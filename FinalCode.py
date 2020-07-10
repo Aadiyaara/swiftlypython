@@ -154,7 +154,7 @@ def read_raw_data(bus, device, addr):
 
 
 bus_1 = smbus.SMBus(1) 	# or bus = smbus.SMBus(0) for older version boards
-bus_2 = smbus.SMBus(4)
+bus_2 = smbus.SMBus(5)
 Device_Address_1 = 0x68   # MPU6050 device address
 Device_Address_2 = 0x69
 
